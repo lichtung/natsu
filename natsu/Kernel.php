@@ -8,11 +8,20 @@
 
 namespace Natsu;
 
+use Natsu\Throwable\Core\ClassInstantiationException;
+use Natsu\Throwable\Core\ClassNotFoundException;
+use ReflectionException;
+use ReflectionClass;
+use Natsu\Core\Dispatcher;
 use Natsu\Core\Request;
+use Natsu\Core\Route;
 use Natsu\Core\Singleton;
 use Natsu\Throwable\IO\File\NotFoundException as FileNotFoundException;
 use Natsu\Throwable\IO\File\WriteException as FileWriteException;
 use Natsu\Throwable\Validation\FormatException;
+
+define('NT_BASE_PATH', __DIR__ . '/../');
+define('NT_RUNTIME_PATH', NT_BASE_PATH . 'runtime/');
 
 /**
  * Class Kernel 框架核心
@@ -39,7 +48,13 @@ final class Kernel
     /** @var array 状态列表(运行时、内存) */
     private static $status = [];
     /** @var array 核心配置 */
-    private $config = [];
+    private $config = [
+        'timezone_zone' => 'Asia/Shanghai',
+        'session.save_handler' => 'files',# redis
+        'session.save_path' => NT_RUNTIME_PATH,# tcp://127.0.0.1:6379
+        'session.gc_maxlifetime' => 3600,
+        'session.cache_expire' => 3600,
+    ];
 
     /**
      * Kernel constructor.
@@ -47,15 +62,29 @@ final class Kernel
      */
     private function __construct(array $config = [])
     {
-        self::status('onBegin');
+        self::status('before_initialize');
         $this->initialize($config);
+        self::status('after_initialize');
     }
 
     #################################### 实例方法 ################################################
 
     private function initialize(array $config): void
     {
-        $config and $this->config = array_merge($this->config, $config);
+        # 合并配置
+        if ($config) foreach ($config as $key => $value) {
+            if (is_array($value)) { # $key 可能是一个类名
+                $value = array_merge($this->config[$key] ?? [], $value);
+            }
+            $this->config[$key] = $value;
+        }
+
+        date_default_timezone_set($this->config['timezone_zone']) or die('timezone set failed!');
+        # ini_set('expose_php', 'Off'); # ini_set 无效，需要修改 php.ini 文件
+        false === ini_set('session.save_handler', $this->config['session.save_handler']) and die('set session.save_handler failed');
+        false === ini_set('session.save_path', $this->config['session.save_path']) and die('set session.save_path failed');
+        false === ini_set('session.gc_maxlifetime', (string)$this->config['session.gc_maxlifetime']) and die('set session.gc_maxlifetime failed');
+        false === ini_set('session.cache_expire', (string)$this->config['session.cache_expire']) and die('set session.cache_expire failed');
 
     }
 
@@ -69,15 +98,22 @@ final class Kernel
         return $this->config[$className] ?? [];
     }
 
+    /**
+     * 加载中间件
+     * @return Kernel
+     */
+    public function loadMidware(): Kernel
+    {
+
+    }
+
     public function start()
     {
         $request = Request::getInstance();
-        if ($request->isCommandLineInterface()) {
-
-        } else {
-            $pathInfo = $request->getPathInfo();
-
-        }
+        $route = Route::factory($request);
+        $dispatcher = Dispatcher::factory($route);
+        $response = $dispatcher->dispatch();
+        echo $response;
     }
 
     #################################### 静态方法 ################################################
@@ -143,5 +179,46 @@ final class Kernel
                 $hash = serialize($params);
         }
         return sha1($hash);
+    }
+
+
+    /**
+     * @param string $className
+     * @return ReflectionClass
+     * @throws ClassNotFoundException
+     */
+    public static function reflect(string $className): ReflectionClass
+    {
+        static $_instances = [];
+        if (!isset($_instances[$className])) {
+            try {
+                $_instances[$className] = new ReflectionClass($className);
+            } catch (ReflectionException $exception) { # ReflectionException will be thrown if class does not exist
+                throw new ClassNotFoundException($exception);
+            }
+        }
+        return $_instances[$className];
+    }
+
+    /**
+     * @param string $className
+     * @param array $arguments
+     * @return object
+     * @throws ClassNotFoundException
+     * @throws ClassInstantiationException
+     */
+    public static function instantiate(string $className, array $arguments = [])
+    {
+        static $_instances = [];
+        $key = $className . self::hash($arguments);
+        if (!isset($_instances[$key])) {
+            $reflectionClass = self::reflect($className);
+            try {
+                $_instances[$key] = $arguments ? $reflectionClass->newInstanceArgs($arguments) : $reflectionClass->newInstance();
+            } catch (ReflectionException $exception) { # 构造方法私有或者保护时抛出
+                throw new ClassInstantiationException($className);
+            }
+        }
+        return $_instances[$key];
     }
 }

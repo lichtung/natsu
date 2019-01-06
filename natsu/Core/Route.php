@@ -19,17 +19,29 @@ use Natsu\Throwable\Core\MethodNotFoundException;
  * @method void delete(string $url, $rule) static
  * @method void any(string $url, $rule) static
  *
+ * @method Route factory(Request $request) static
  * @package Natsu\Core
  */
 class Route
 {
-    use Singleton;
+    use Factory;
     /** @var string 当前分组 */
     private static $currentGroup = '';
     /** @var array 静态路由，直接匹配请求地址 */
     private static $staticRoute = [];
     /** @var array 正则路由，使用正则表达式匹配路由地址 */
     private static $wildcardRoute = [];
+    /** @var Request 请求 */
+    private $request;
+
+    /**
+     * Route constructor.
+     * @param Request $request
+     */
+    public function __construct(Request $request)
+    {
+        $this->request = $request;
+    }
 
     /**
      * @param string $name

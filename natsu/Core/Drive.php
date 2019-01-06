@@ -9,6 +9,8 @@
 namespace Natsu\Core;
 
 
+use Natsu\Kernel;
+
 trait Drive
 {
 
@@ -19,20 +21,21 @@ trait Drive
      * @throws DriverNotFoundException 适配器未定义
      * @throws ClassNotFoundException  适配器类不存在
      */
-    public function drive(string $index = '')
+    public function drive(string $index = 'default')
     {
-
-        $index and $this->index = $index;
-        if (!isset($this->driver)) {
-            if (isset($this->config['drivers'][$this->index])) {
-                $this->driverName = $this->config['drivers'][$this->index]['name'];
-                $this->driverConfig = $this->config['drivers'][$this->index]['config'] ?? [];
-                $this->driver = Kernel::factory($this->driverName, [$this->driverConfig, $this]);
+        static $_instances = [];
+        $key = static::class . '-' . $index;
+        if (isset($_instances[$key])) {
+            $config = Kernel::getInstance()->config(static::class);
+            if (isset($config['drivers'][$this->index])) {
+                $driverName = $config['drivers'][$this->index]['name'];
+                $driverConfig = $config['drivers'][$this->index]['config'] ?? [];
+                $_instances[$key] = new $driverName($driverConfig, $this);
             } else {
-                throw new DriverNotFoundException("driver '{$this->index}' not found");
+//                throw new DriverNotFoundException("driver '{$this->index}' not found");
             }
         }
-        return $this->driver;
+        return $_instances[$key];
     }
 
     /**
