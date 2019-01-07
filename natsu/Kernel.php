@@ -8,6 +8,7 @@
 
 namespace Natsu;
 
+use Natsu\Core\Command;
 use Natsu\Throwable\Core\ClassInstantiationException;
 use Natsu\Throwable\Core\ClassNotFoundException;
 use ReflectionException;
@@ -19,6 +20,8 @@ use Natsu\Core\Singleton;
 use Natsu\Throwable\IO\File\NotFoundException as FileNotFoundException;
 use Natsu\Throwable\IO\File\WriteException as FileWriteException;
 use Natsu\Throwable\Validation\FormatException;
+use Symfony\Component\Debug\ErrorHandler;
+use Symfony\Component\Debug\ExceptionHandler;
 
 define('NT_BASE_PATH', __DIR__ . '/../');
 define('NT_RUNTIME_PATH', NT_BASE_PATH . 'runtime/');
@@ -27,9 +30,8 @@ define('NT_RUNTIME_PATH', NT_BASE_PATH . 'runtime/');
  * Class Kernel 框架核心
  * @package Natsu
  */
-final class Kernel
+class Kernel
 {
-
     use Singleton;
 
     /** @var string 版本号 */
@@ -54,11 +56,14 @@ final class Kernel
         'session.save_path' => NT_RUNTIME_PATH,# tcp://127.0.0.1:6379
         'session.gc_maxlifetime' => 3600,
         'session.cache_expire' => 3600,
+        'debug' => true,
+        'midware' => [
+        ],
     ];
 
     /**
      * Kernel constructor.
-     * @param
+     * @param array $config
      */
     private function __construct(array $config = [])
     {
@@ -86,6 +91,25 @@ final class Kernel
         false === ini_set('session.gc_maxlifetime', (string)$this->config['session.gc_maxlifetime']) and die('set session.gc_maxlifetime failed');
         false === ini_set('session.cache_expire', (string)$this->config['session.cache_expire']) and die('set session.cache_expire failed');
 
+
+        if ($this->config['debug']) {
+            ExceptionHandler::register(); # registers an error handler, an exception handler and a special class loader
+            ErrorHandler::register();
+        } else {
+
+        }
+
+    }
+
+    public function start()
+    {
+        if (!Command::isCommandLineInterface()) {
+            self::status('start');
+            $pathInfo = Request::getInstance()->getPathInfo();
+            [$controller, $action] = Route::getInstance()->parse($pathInfo);
+            $response = Dispatcher::getInstance()->dispatch($controller, $action);
+            echo $response;
+        }
     }
 
     /**
@@ -96,24 +120,6 @@ final class Kernel
     public function config(string $className): array
     {
         return $this->config[$className] ?? [];
-    }
-
-    /**
-     * 加载中间件
-     * @return Kernel
-     */
-    public function loadMidware(): Kernel
-    {
-
-    }
-
-    public function start()
-    {
-        $request = Request::getInstance();
-        $route = Route::factory($request);
-        $dispatcher = Dispatcher::factory($route);
-        $response = $dispatcher->dispatch();
-        echo $response;
     }
 
     #################################### 静态方法 ################################################

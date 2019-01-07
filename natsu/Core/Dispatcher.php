@@ -10,12 +10,11 @@ namespace Natsu\Core;
 
 /**
  * Class Dispatcher
- * @method Dispatcher factory(Route $route) static
  * @package Natsu\Core
  */
 class Dispatcher
 {
-    use Factory;
+    use Singleton;
 
     /** @var Route */
     private $route;
@@ -30,9 +29,11 @@ class Dispatcher
     }
 
     /**
+     * @param string $controller
+     * @param string $method
      * @return Response
      */
-    public function dispatch(): Response
+    public function dispatch(string $controller, string $method): Response
     {
 
 

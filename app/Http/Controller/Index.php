@@ -6,10 +6,13 @@
  * Time: 18:59
  */
 
-namespace App\Controller;
+namespace App\Http\Controller;
 
 
 class Index
 {
-
+    public function test()
+    {
+        echo __METHOD__;
+    }
 }
