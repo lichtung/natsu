@@ -106,8 +106,8 @@ class Kernel
         if (!Command::isCommandLineInterface()) {
             self::status('start');
             $pathInfo = Request::getInstance()->getPathInfo();
-            [$controller, $action] = Route::getInstance()->parse($pathInfo);
-            $response = Dispatcher::getInstance()->dispatch($controller, $action);
+            [$module, $controller, $action, $params] = Route::getInstance()->parse($pathInfo);
+            $response = Dispatcher::getInstance()->dispatch($module, $controller, $action, $params);
             echo $response;
         }
     }

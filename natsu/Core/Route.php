@@ -32,8 +32,6 @@ class Route
     private static $wildcardRoute = [];
     /** @var array 虚拟主机与控制器的绑定 */
     private static $vhost2controller = [];
-    /** @var Request 请求 */
-    private $request;
     /** @var array */
     private $config = [
         'default_modules' => '',
@@ -46,32 +44,15 @@ class Route
         'api_action_variable' => 'a',
     ];
 
-    /**
-     * Route constructor.
-     * @param Request $request
-     */
-    public function __construct(Request $request)
-    {
-        $this->request = $request;
-    }
 
     /**
      * 解析路由并设置路由信息
      * @param string $pathInfo
-     * @return Route
+     * @return array
      */
-    public function parse(string $pathInfo): Route
+    public function parse(string $pathInfo): array
     {
-        if (!empty(self::$vhost2controller)) {
-            $host = $_SERVER['HTTP_HOST'] ?? '';
-            if ($controller = self::$vhost2controller[$host] ?? null) {
-                $action = trim($pathInfo, '/');
-                # $controller, $action ?: $this->config['default_action']
-                return $this;
-            }
-        }
-
-        $method = strtolower(DRI_REQUEST_METHOD);
+        $method = strtolower(Request::getInstance()->getRequestMethod());
         # 静态式路由
         if (!empty(self::$staticRoute) and $rule = self::$staticRoute[$method . '-' . $pathInfo] ?? self::$staticRoute['any-' . $pathInfo] ?? false) {
             return $rule;
@@ -87,18 +68,104 @@ class Route
                 }
                 $matched = self::match($pathInfo, $pattern);
                 if (isset($matched)) {
-                    $request->setParams($matched);
+                    $ruleParams = $rule[4] ?? [];
+                    $rule[4] = array_merge($ruleParams, $matched);
                     return $rule;
                 }
             }
         }
-        list($modules, $controller, $action) = Request::parsePathInfo($pathInfo);
+        list($modules, $controller, $action) = self::parsePathInfo($pathInfo);
         $modules or $modules = $this->config['default_modules'];
 
-        $request->setModule(is_array($modules) ? implode('/', $modules) : $modules);
-        $request->setController($controller ?: $this->config['default_controller']);
-        $request->setAction($action ?: $this->config['default_action']);
-        return $this;
+        $modules = is_array($modules) ? implode('/', $modules) : $modules;
+        $controller = $controller ?: $this->config['default_controller'];
+        $action = $action ?: $this->config['default_action'];
+        return [$modules, $controller, $action, []];
+    }
+
+    public static function parsePathInfo(string $pathInfo): array
+    {
+        $parsed = [[], '', ''];
+        if ($pathInfo = trim($pathInfo, ' /')) {
+            $capos = strrpos($pathInfo, '/');
+            if (false === $capos) {
+                $parsed[2] = $pathInfo;
+            } else {
+                $parsed[2] = substr($pathInfo, $capos + 1);
+
+                //CA存在衔接符 则说明一定存在控制器
+                $mcaLength = strlen($pathInfo);
+                $mcPart = substr($pathInfo, 0, $capos - $mcaLength);
+
+                if (strlen($pathInfo)) {
+                    $mcPosition = strrpos($mcPart, '/');
+                    if (false === $mcPosition) {
+                        //不存在模块
+                        if (strlen($mcPart)) {
+                            //全部是控制器的部分
+                            $parsed[1] = $mcPart;
+                        }   //没有控制器部分，则使用默认的
+                    } else {
+                        //截取控制器的部分
+                        $parsed[1] = substr($mcPart, $mcPosition + 1);
+
+                        //既然存在MC衔接符 说明一定存在模块
+                        $mPart = substr($mcPart, 0, $mcPosition - strlen($mcPart));//以下的全是模块部分的字符串
+                        if (strlen($mPart)) {
+                            if (false === strpos($mPart, '/')) {
+                                $parsed[0] = [$mPart];
+                            } else {
+                                $parsed[0] = explode('/', $mPart);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $parsed;
+    }
+
+    /**
+     * @param string $pathInfo
+     * @param string $pattern 正则/规则式
+     * @return null|array 匹配成功返回数组，里面包含匹配出来的参数；不匹配时返回null
+     */
+    public static function match(string $pathInfo, string $pattern)
+    {
+        static $_matchCache = [];
+        if (strpos($pattern, '{') !== false) {
+            if (isset($_matchCache[$pattern])) {
+                list($compiledPattern, $params) = $_matchCache[$pattern];
+            } else {
+                $params = [];
+                $compiledPattern = preg_replace_callback('/\{[^\}]+?\}/', function ($matches) use (&$params) {
+                    if ($name = $matches[0] ?? false) { # $matches[0]是完成的匹配 $matches[1]是第一个捕获子组的匹配（没有子组）
+                        $params[trim($name, '{}')] = null;
+                        return '([^/]+)';
+                    } else {
+                        return '';
+                    }
+                }, $pattern);
+            }
+        } else {
+            $compiledPattern = $pattern; # 纯正则表达式
+            $params = null;
+        }
+        $result = preg_match('#^' . $compiledPattern . '$#', rtrim($pathInfo, '/'), $matches);
+        if ($result) { # 使用 '#' 代替开头和结尾的 '/'，可以忽略 $pattern 中的 "/"
+            array_shift($matches);
+            if (isset($params)) {
+                $index = 0;
+                foreach ($params as $name => &$val) {
+                    $val = $matches[$index++] ?? null;
+                }
+            } else {
+                $params = $matches;
+            }
+        } else {
+            $params = null;
+        }
+        return $params;
     }
 
     /**
