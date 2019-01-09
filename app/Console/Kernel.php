@@ -9,7 +9,7 @@
 namespace App\Console;
 
 
-use Natsu\Core\Singleton;
+use Canan\Core\Singleton;
 
 class Kernel
 {

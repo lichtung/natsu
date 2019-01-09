@@ -9,7 +9,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Natsu\\": "./natsu",
+            "Canan\\": "./canan",
             "App\\": "./app"
         }
     },

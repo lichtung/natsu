@@ -8,8 +8,8 @@
 
 namespace {
 
-    use Natsu\Core\Route;
-    use Natsu\Kernel;
+    use Canan\Core\Route;
+    use Canan\Kernel;
 
     require __DIR__ . '/../vendor/autoload.php';
     $kernel = Kernel::getInstance();
