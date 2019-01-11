@@ -15,7 +15,7 @@ use Canan\Throwable\Library\Elasticsearch\IndexNotFoundException;
 use Canan\Throwable\Library\Elasticsearch\ResourceAlreadyExistsException;
 use Elasticsearch\Common\Exceptions\BadRequest400Exception;
 
-class ElasticsearchTest extends UnitTest
+class ElasticsearchBasicTest extends UnitTest
 {
     /**
      * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
@@ -24,7 +24,7 @@ class ElasticsearchTest extends UnitTest
      * @throws \Canan\Throwable\Library\ElasticsearchException
      * @throws \Elasticsearch\Common\Exceptions\Missing404Exception
      */
-    public function testBasicOfCreateIndex()
+    public function testCreateIndex()
     {
         $elasticsearch = Elasticsearch::factory([
             'hosts' => ['192.168.200.100:9200'],
@@ -62,11 +62,11 @@ class ElasticsearchTest extends UnitTest
     }
 
     /**
-     * @depends testBasicOfCreateIndex
+     * @depends testCreateIndex
      * @param array $params
      * @return Elasticsearch\Index
      */
-    public function testBasicOfCreateDocument(array $params)
+    public function testCreateDocument(array $params)
     {
         /** @var Elasticsearch $elasticsearch */
         $elasticsearch = $params[0];
@@ -84,7 +84,7 @@ class ElasticsearchTest extends UnitTest
     }
 
     /**
-     * @depends testBasicOfCreateDocument
+     * @depends testCreateDocument
      * @param Elasticsearch\Index $index
      * @return Elasticsearch\Index
      */
@@ -146,6 +146,14 @@ class ElasticsearchTest extends UnitTest
         foreach ($result as $item) {
             $this->assertTrue($item->getScore() === 1.0);
         }
+
+        $result = $index->query()->range('age', [
+            'gte' => 12,
+            'lte' => 13,
+        ])->term('name', 'piece')->fetch();
+        $this->assertTrue(count($result) === 1);
+        $this->assertTrue($result->current()->get('name') === 'piece');
+
 
         dump($result);
         $this->assertTrue(true);

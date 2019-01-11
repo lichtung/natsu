@@ -22,10 +22,27 @@ class QueryBuilder
     }
 
     /**
+     * 如果同时存在两个条件，如range何match的时候，需要用bool-query连接两个条件
+     * 问题解答 @see https://discuss.elastic.co/t/elasticsearch-watcher-error-for-range-query/70347
+     * 文档地址 @see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html
      * @return SearchResult
      */
     public function fetch(): SearchResult
     {
+        if (count($this->query) > 1) {
+            $must = [];
+            # 多项
+            foreach ($this->query as $key => $value) {
+                $must[] = [
+                    $key => $value,
+                ];
+            }
+            $this->query = [
+                'bool' => [
+                    'must' => $must,
+                ],
+            ];
+        }
         $result = $this->index->getElasticsearch()->getClient()->search([
             'index' => $this->index->getIndexName(),
             'type' => 'doc',
@@ -93,6 +110,18 @@ class QueryBuilder
     public function terms(string $name, array $values)
     {
         $this->query['terms'] = [$name => $values]; # [terms] query does not support multiple fields
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     * @param array $filter
+     * @return $this
+     */
+    public function range(string $name, array $filter)
+    {
+        isset($this->query['range']) or $this->query['range'] = [];
+        $this->query['range'][$name] = $filter;
         return $this;
     }
 }
