@@ -8,6 +8,9 @@
 
 namespace Canan\Core;
 
+use Canan\Constract\Configurable;
+use Canan\Kernel;
+
 /**
  * Trait Singleton 单例Trait
  * 备注：
@@ -28,7 +31,11 @@ trait Singleton
         static $_instances = [];
         $className = static::class;
         if (!isset($_instances[$className])) {
-            $_instances[$className] = new $className();
+            $instance = new $className();
+            if ($instance instanceof Configurable) {
+                Kernel::getInstance()->applyConfig($instance);
+            }
+            $_instances[$className] = $instance;
         }
         return $_instances[$className];
     }

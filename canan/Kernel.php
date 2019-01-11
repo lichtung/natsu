@@ -8,6 +8,7 @@
 
 namespace Canan;
 
+use Canan\Constract\Configurable;
 use Canan\Core\Command;
 use Canan\Throwable\Core\ClassInstantiationException;
 use Canan\Throwable\Core\ClassNotFoundException;
@@ -23,8 +24,8 @@ use Canan\Throwable\Validation\FormatException;
 use Symfony\Component\Debug\ErrorHandler;
 use Symfony\Component\Debug\ExceptionHandler;
 
-define('NT_BASE_PATH', __DIR__ . '/../');
-define('NT_RUNTIME_PATH', NT_BASE_PATH . 'runtime/');
+define('CNN_BASE_PATH', __DIR__ . '/../');
+define('CNN_RUNTIME_PATH', CNN_BASE_PATH . 'runtime/');
 
 /**
  * Class Kernel 框架核心
@@ -53,7 +54,7 @@ class Kernel
     private $config = [
         'timezone_zone' => 'Asia/Shanghai',
         'session.save_handler' => 'files',# redis
-        'session.save_path' => NT_RUNTIME_PATH,# tcp://127.0.0.1:6379
+        'session.save_path' => CNN_RUNTIME_PATH,# tcp://127.0.0.1:6379
         'session.gc_maxlifetime' => 3600,
         'session.cache_expire' => 3600,
         'debug' => true,
@@ -128,6 +129,14 @@ class Kernel
     public function config(string $className): array
     {
         return $this->config[$className] ?? [];
+    }
+
+    public function applyConfig(Configurable $instance, ...$parameters): void
+    {
+        $preference = $instance->preference();
+        $customization = Kernel::getInstance()->config(get_class($instance));
+        $config = array_merge($preference, $customization, ...$parameters);
+        $instance->apply($config);
     }
 
     #################################### 静态方法 ################################################

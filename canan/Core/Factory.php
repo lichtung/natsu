@@ -8,6 +8,7 @@
 
 namespace Canan\Core;
 
+use Canan\Constract\Configurable;
 use Canan\Kernel;
 
 /**
@@ -28,7 +29,11 @@ trait Factory
         isset($_multiple_instances[$static]) or $_multiple_instances[$static] = [];
         $index = Kernel::hash($arguments);
         if (!isset($_multiple_instances[$static][$index])) {
-            $_multiple_instances[$static][$index] = new static(...$arguments); # 分拆数组
+            $instance = new static();
+            if ($instance instanceof Configurable) {
+                Kernel::getInstance()->applyConfig($instance, ... $arguments);
+            }
+            $_multiple_instances[$static][$index] = $instance; # 分拆数组
         }
         return $_multiple_instances[$static][$index];
     }

@@ -5,7 +5,8 @@
         "symfony/debug": "^4.2",
         "symfony/console": "^4.2",
         "symfony/routing": "^4.2",
-        "elasticsearch/elasticsearch": "~6.0"
+        "elasticsearch/elasticsearch": "~6.0",
+        "monolog/monolog": "^1.24"
     },
     "autoload": {
         "psr-4": {
