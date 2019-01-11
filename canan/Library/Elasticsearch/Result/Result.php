@@ -15,5 +15,16 @@ namespace Canan\Library\Elasticsearch\Result;
 abstract class Result
 {
 
+    protected $result;
+
+    public function __construct(array $result)
+    {
+        $this->result = $result;
+    }
+
+    public function __get($name)
+    {
+        return $this->result[$name];
+    }
 
 }

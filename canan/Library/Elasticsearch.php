@@ -12,6 +12,7 @@ namespace Canan\Library;
 use Canan\Constract\Configurable;
 use Canan\Core\Factory;
 use Canan\Library\Elasticsearch\Index;
+use Canan\Library\Elasticsearch\Result\IndexCreation;
 use Canan\Throwable\Library\Elasticsearch\IndexNotFoundException;
 use Canan\Throwable\Library\Elasticsearch\ResourceAlreadyExistsException;
 use Canan\Throwable\Library\ElasticsearchException;
@@ -22,6 +23,7 @@ use Elasticsearch\Common\Exceptions\Missing404Exception;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Exception;
+use Canan\Library\Elasticsearch\Result\DocumentIndex;
 
 /**
  * Class Elasticsearch
@@ -81,7 +83,7 @@ class Elasticsearch implements Configurable
     /**
      * @param string $indexName
      * @param array $mappings
-     * @return array
+     * @return IndexCreation
      * @throws ElasticsearchException
      * @throws BadRequest400Exception
      */
@@ -93,7 +95,7 @@ class Elasticsearch implements Configurable
                 isset($params['body']) or $params['body'] = [];
                 $params['body']['mappings'] = $mappings;
             }
-            return $this->client->indices()->create($params);
+            return new IndexCreation($this->client->indices()->create($params));
         } catch (BadRequest400Exception $exception) {
             $this->checkException($exception);
             throw $exception;

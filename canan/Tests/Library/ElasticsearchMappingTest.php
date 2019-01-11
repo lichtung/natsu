@@ -38,17 +38,18 @@ class ElasticsearchMappingTest extends UnitTest
                 ],
             ],
         ]);
-        dump($result);
+        $this->assertTrue($result->acknowledged);
         $index = $elasticsearch->index($indexName);
         $result = $index->add([
             'text' => 'this is text' . microtime(true),
         ]);
+        $this->assertTrue($result->getSuccessful() > 0);
 
         $result = $index->add([
             'text' => 'this is text' . microtime(true),
         ]);
+        $this->assertTrue($result->getSuccessful() > 0);
 
-        dump($result);
         $this->assertTrue(true);
     }
 }

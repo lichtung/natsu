@@ -9,6 +9,7 @@
 namespace Canan\Library\Elasticsearch;
 
 use Canan\Library\Elasticsearch;
+use Canan\Library\Elasticsearch\Result\DocumentIndex;
 
 class Index
 {
@@ -40,7 +41,7 @@ class Index
      * "_primary_term" => 1
      * ]
      * @param array $data
-     * @return array
+     * @return DocumentIndex
      */
     public function add(array $data)
     {
@@ -50,7 +51,7 @@ class Index
             'type' => 'doc',
             'body' => $data,
         ]);
-        return $result;
+        return new DocumentIndex($result);
     }
 
     /**

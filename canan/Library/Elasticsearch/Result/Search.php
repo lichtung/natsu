@@ -70,8 +70,10 @@ class Search extends Result implements \Iterator, \Countable
 
     private $position;
 
+
     public function __construct(array $result)
     {
+        parent::__construct($result);
         $this->took = $result['took'] ?? 0;
         $this->time_out = $result['time_out'] ?? false;
         $this->_shards = $result['_shards'] ?? [];
