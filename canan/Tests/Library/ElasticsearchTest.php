@@ -91,58 +91,65 @@ class ElasticsearchTest extends UnitTest
     public function testMatch(Elasticsearch\Index $index)
     {
         # 测试 match(只要有分词能匹配就返回)
-        $result = $index->match(['sign' => 'name is sara',]);
-        $this->assertTrue(3 === $result['hits']['total']); # 1~3 包含 is
+        $result = $index->query()->match(['sign' => 'name is sara',])->fetch();
+        $this->assertTrue(3 === $result->getTotal()); # 1~3 包含 is
 
-        $result = $index->match(['sign' => 'first name',]);
-        $this->assertTrue(2 === $result['hits']['total']); # 1~2包含 name
+        $result = $index->query()->match(['sign' => 'first name',])->fetch();
+        $this->assertTrue(2 === $result->getTotal()); # 1~2包含 name
 
-        $result = $index->match(['sign' => 'ace name']);
-        $this->assertTrue(3 === $result['hits']['total']); # 1~3
+        $result = $index->query()->match(['sign' => 'ace name'])->fetch();
+        $this->assertTrue(3 === $result->getTotal()); # 1~3
         return $index;
     }
 
-//    /**
-//     * @depends testMatch
-//     * @param Elasticsearch\Index $index
-//     * @return Elasticsearch\Index
-//     */
-//    public function testMatchPhrase(Elasticsearch\Index $index)
-//    {
-//        # 测试 match_phrase ()
-//        $result = $index->matchPhrase(['sign' => ' name is']);
-//        $this->assertTrue(2 === $result['hits']['total']); # 不用交互位置即可匹配到1和2
-//
-//        $result = $index->matchPhrase(['sign' => 'is name']);
-//        $this->assertTrue(0 === $result['hits']['total']);
-//        $result = $index->matchPhrase(['sign' => ['query' => 'is name', 'slop' => 2]]); # 这里name is交换位置占据了2个slop @see https://www.elastic.co/guide/en/elasticsearch/guide/current/slop.html
-//        $this->assertTrue(2 === $result['hits']['total']);
-//
-//        $result = $index->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 1]]); # is 往后面挪一格子
-//        $this->assertTrue(1 === $result['hits']['total']);
-//
-//        $index->add(['name' => 'nara', 'age' => 11, 'sign' => 'my first name is nara']);
-//        sleep(1);
-//        $result = $index->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 1]]); # my name is nara
-//        $this->assertTrue(1 === $result['hits']['total']);
-//        $result = $index->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 2]]); # my name is nara 和 my first name is nara(is 挪两格)
-//        $this->assertTrue(2 === $result['hits']['total']);
-//        return $index;
-//    }
-//
-//    /**
-//     * @depends testMatchPhrase
-//     * @param Elasticsearch\Index $index
-//     * @return Elasticsearch\Index
-//     */
-//    public function testTerm(Elasticsearch\Index $index)
-//    {
-//
-//        $result = $index->term(['age' => 14]);
-//        dump($result);
-//
-//        $this->assertTrue(true);
-//        return $index;
-//    }
+    /**
+     * @depends testMatch
+     * @param Elasticsearch\Index $index
+     * @return Elasticsearch\Index
+     */
+    public function testMatchPhrase(Elasticsearch\Index $index)
+    {
+        # 测试 match_phrase ()
+        $result = $index->query()->matchPhrase(['sign' => ' name is'])->fetch();
+        $this->assertTrue(2 === $result->getTotal()); # 不用交互位置即可匹配到1和2
+
+        $result = $index->query()->matchPhrase(['sign' => 'is name'])->fetch();
+        $this->assertTrue(0 === $result->getTotal());
+        $result = $index->query()->matchPhrase(['sign' => ['query' => 'is name', 'slop' => 2]])->fetch(); # 这里name is交换位置占据了2个slop @see https://www.elastic.co/guide/en/elasticsearch/guide/current/slop.html
+        $this->assertTrue(2 === $result->getTotal());
+
+        $result = $index->query()->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 1]])->fetch(); # is 往后面挪一格子
+        $this->assertTrue(1 === $result->getTotal());
+
+        $index->add(['name' => 'nara', 'age' => 11, 'sign' => 'my first name is nara']);
+        sleep(1);
+        $result = $index->query()->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 1]])->fetch(); # my name is nara
+        $this->assertTrue(1 === $result->getTotal());
+        $result = $index->query()->matchPhrase(['sign' => ['query' => 'my is', 'slop' => 2]])->fetch(); # my name is nara 和 my first name is nara(is 挪两格)
+        $this->assertTrue(2 === $result->getTotal());
+        return $index;
+    }
+
+    /**
+     * @depends testMatchPhrase
+     * @param Elasticsearch\Index $index
+     * @return Elasticsearch\Index
+     */
+    public function testTermAndTerms(Elasticsearch\Index $index)
+    {
+
+        $result = $index->query()->term('age', 14)->fetch();
+        $this->assertTrue(count($result) === 1);
+        $this->assertTrue($result->current()->get('name') === 'bie');
+
+        $result = $index->query()->terms('age', [12, 14])->fetch();
+        foreach ($result as $item) {
+            $this->assertTrue($item->getScore() === 1.0);
+        }
+
+        dump($result);
+        $this->assertTrue(true);
+        return $index;
+    }
 
 }

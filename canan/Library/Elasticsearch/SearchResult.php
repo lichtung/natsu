@@ -16,6 +16,12 @@ namespace Canan\Library\Elasticsearch;
  *  "took" => 1
  *  "timed_out" => false
  *  "_shards" => array:4 [
+ *      # The _shards element tells us the total number of shards that were involved in the query and, of them, how many were successful and how many failed.
+ *      # 有多少个节点参与此查询 以及他们中有多少个成功，多少个失败
+ *      # We wouldn’t normally expect shards to fail, but it can happen. If we were to suffer a major disaster in which we lost both the primary and the
+ *      # replica copy of the same shard, there would be no copies of that shard available to respond to search requests.
+ *      # In this case, Elasticsearch would report the shard as failed, but continue to return results from the remaining shards.
+ *      # 我们通常不希望分片查询是吧，但是它们的确会发生，如果主分片和拷贝分片的数据同时丢失了，es会报告这个错误，但是其他的一些结构仍然会返回
  *      "total" => 5
  *      "successful" => 5
  *      "skipped" => 0
@@ -42,7 +48,7 @@ namespace Canan\Library\Elasticsearch;
  * @see https://www.elastic.co/guide/en/elasticsearch/guide/current/empty-search.html
  * @package Canan\Library\Elasticsearch
  */
-class SearchResult implements \Iterator
+class SearchResult implements \Iterator, \Countable
 {
     /**
      * took 表示查询花费的毫秒数（1 second  = 1,000 millisecond = 1,000,000 microsecond = 1,000,000,000 nanosecond ）
@@ -59,12 +65,34 @@ class SearchResult implements \Iterator
      */
     private $hits;
 
+    private $list = [];
+
+    private $position;
+
     public function __construct(array $result)
     {
         $this->took = $result['took'] ?? 0;
         $this->time_out = $result['time_out'] ?? false;
         $this->_shards = $result['_shards'] ?? [];
-        $this->hits = $result['hits'] ?? [];
+        $this->hits = $result['hits'] ?? ['hits' => []];
+        # 遍历对象
+        $this->list = &$this->hits['hits']; # 去掉 & 会再复制一份数组，占用更多的内存
+        $this->position = 0;
+    }
+
+    public function count()
+    {
+        return count($this->list);
+    }
+
+    public function getTotal(): int
+    {
+        return $this->hits['total'] ?? 0;
+    }
+
+    public function getMaxScore(): float
+    {
+        return $this->hits['max_score'] ?? 0;
     }
 
     /**
@@ -99,30 +127,36 @@ class SearchResult implements \Iterator
         return $this->hits;
     }
 
-
+    /**
+     * @return Document
+     */
     public function current()
     {
-        // TODO: Implement current() method.
+        return new Document($this->list[$this->position]);
     }
 
     public function next()
     {
-        // TODO: Implement next() method.
+        ++$this->position;
     }
 
     public function key()
     {
-        // TODO: Implement key() method.
+        return $this->position;
     }
 
     public function valid()
     {
-        // TODO: Implement valid() method.
+        return isset($this->list[$this->position]);
     }
 
+    /**
+     * Rewind the Iterator to the first element
+     * @return void
+     */
     public function rewind()
     {
-        // TODO: Implement rewind() method.
+        $this->position = 0;
     }
 
 }

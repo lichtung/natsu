@@ -15,14 +15,14 @@ class Index
 {
 
     /** @var Elasticsearch */
-    private $context;
+    private $elasticsearch;
     /** @var string */
     private $indexName;
 
-    public function __construct(string $indexName, Elasticsearch $context)
+    public function __construct(string $indexName, Elasticsearch $elasticsearch)
     {
         $this->indexName = $indexName;
-        $this->context = $context;
+        $this->elasticsearch = $elasticsearch;
     }
 
     /**
@@ -46,7 +46,7 @@ class Index
     public function add(array $data)
     {
         $data['lts'] = time();
-        $result = $this->context->getClient()->index([
+        $result = $this->elasticsearch->getClient()->index([
             'index' => $this->indexName,
             'type' => 'doc',
             'body' => $data,
@@ -55,63 +55,24 @@ class Index
     }
 
     /**
-     *
-     * @param array $filter
-     * @return SearchResult
+     * @return Elasticsearch
      */
-    public function get(array $filter): SearchResult
+    public function getElasticsearch(): Elasticsearch
     {
-        $result = $this->context->getClient()->search([
-            'index' => $this->indexName,
-            'type' => 'doc',
-            'body' => $filter,
-        ]);
-        return new SearchResult($result);
+        return $this->elasticsearch;
     }
 
     /**
-     * 单词匹配
-     * 如果是短语则会拆分成单词，只要有单词匹配上返回该文档
-     *  如 "name is"会被拆分成 name 和 is，如果内容中有name或者is可以匹配出该文档
-     * @param array $filter
-     * @return array
+     * @return string
      */
-    public function match(array $filter)
+    public function getIndexName(): string
     {
-        return $this->get(['query' => [
-            'match' => $filter,
-        ]]);
+        return $this->indexName;
     }
 
-    /**
-     * 短语匹配
-     * 内容中必须行有该词语才能匹配得上
-     * 此外可以加slop来允许移动单词的位置来进行匹配
-     *  如
-     *      "his name" 到 "his first name" 需要 slop = 1（name往后挪一格）
-     *      "name is" 到 "is name" 需要 slop = 2 （交换位置需要两步操作）
-     * @param array $filter
-     * @return array
-     */
-    public function matchPhrase(array $filter)
+    public function query()
     {
-        return $this->get([
-            'query' => [
-                'match_phrase' => $filter,
-            ],
-        ]);
-    }
-
-    /**
-     * 精确查找
-     * @param array $filter
-     * @return array
-     */
-    public function term(array $filter)
-    {
-        return $this->get(['query' => [
-            'term' => $filter,
-        ]]);
+        return new QueryBuilder($this);
     }
 
 }
