@@ -80,16 +80,20 @@ class Elasticsearch implements Configurable
 
     /**
      * @param string $indexName
+     * @param array $mappings
      * @return array
      * @throws ElasticsearchException
      * @throws BadRequest400Exception
      */
-    public function createIndex(string $indexName)
+    public function createIndex(string $indexName, array $mappings = [])
     {
         try {
-            return $this->client->indices()->create([
-                'index' => $indexName,
-            ]);
+            $params = ['index' => $indexName];
+            if ($mappings) {
+                isset($params['body']) or $params['body'] = [];
+                $params['body']['mappings'] = $mappings;
+            }
+            return $this->client->indices()->create($params);
         } catch (BadRequest400Exception $exception) {
             $this->checkException($exception);
             throw $exception;

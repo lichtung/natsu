@@ -8,7 +8,6 @@
 
 namespace Canan\Library\Elasticsearch;
 
-
 use Canan\Library\Elasticsearch;
 
 class Index
@@ -72,7 +71,7 @@ class Index
 
     public function query()
     {
-        return new QueryBuilder($this);
+        return new Elasticsearch\Builder\MustQuery($this);
     }
 
 }

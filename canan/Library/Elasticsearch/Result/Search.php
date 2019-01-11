@@ -6,11 +6,12 @@
  * Time: 11:31
  */
 
-namespace Canan\Library\Elasticsearch;
+namespace Canan\Library\Elasticsearch\Result;
+
+use Canan\Library\Elasticsearch\Document;
 
 /**
- * Class SearchResult
- *
+ * Class Search 查询结果
  *
  * .array:4 [
  *  "took" => 1
@@ -48,7 +49,7 @@ namespace Canan\Library\Elasticsearch;
  * @see https://www.elastic.co/guide/en/elasticsearch/guide/current/empty-search.html
  * @package Canan\Library\Elasticsearch
  */
-class SearchResult implements \Iterator, \Countable
+class Search extends Result implements \Iterator, \Countable
 {
     /**
      * took 表示查询花费的毫秒数（1 second  = 1,000 millisecond = 1,000,000 microsecond = 1,000,000,000 nanosecond ）
