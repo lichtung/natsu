@@ -16,7 +16,6 @@ use Canan\Library\Elasticsearch\Result\Search;
  */
 class MustQuery extends Builder
 {
-
     /**
      * 如果同时存在两个条件，如range何match的时候，需要用bool-query连接两个条件
      * 问题解答 @see https://discuss.elastic.co/t/elasticsearch-watcher-error-for-range-query/70347
@@ -39,13 +38,16 @@ class MustQuery extends Builder
                 ],
             ];
         }
-        $result = $this->index->getElasticsearch()->getClient()->search([
+        $params = [
             'index' => $this->index->getIndexName(),
             'type' => 'doc',
-            'body' => [
-                'query' => $this->query,
-            ],
-        ]);
+            'body' => [],
+        ];
+        if ($this->query) {
+            $params['body']['query'] = $this->query;
+        }
+        dump($params);
+        $result = $this->index->getElasticsearch()->getClient()->search($params);
         return new Search($result);
     }
 
