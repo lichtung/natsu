@@ -8,8 +8,8 @@
 
 namespace {
 
-    use Canan\Core\Route;
-    use Canan\Kernel;
+    use Emanon\Core\Route;
+    use Emanon\Kernel;
 
     require __DIR__ . '/../vendor/autoload.php';
     $kernel = Kernel::getInstance();
@@ -17,5 +17,4 @@ namespace {
     Route::get('/test', [\App\Http\Controller\Test::class, 'index']);
 
     $kernel->start();
-    echo 'hello world';
 }

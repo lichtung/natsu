@@ -10,7 +10,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Canan\\": "./canan",
+            "Emanon\\": "./emanon",
             "App\\": "./app"
         }
     },

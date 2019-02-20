@@ -11,7 +11,7 @@ namespace App\Http\Controller;
 
 class Index
 {
-    public function test()
+    public function index()
     {
         echo __METHOD__;
     }

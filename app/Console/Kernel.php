@@ -9,7 +9,7 @@
 namespace App\Console;
 
 
-use Canan\Core\Singleton;
+use Emanon\Core\Singleton;
 
 class Kernel
 {
